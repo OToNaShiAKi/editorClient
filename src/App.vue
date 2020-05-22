@@ -30,13 +30,7 @@
             http://59.110.40.182/editor/#/{{ room }}
           </p>
           <p class="layout">面试官：{{ examiner }} —— 面试者：{{ examinee }}</p>
-          <van-button
-            lass="layout"
-            type="warning"
-            @click="closeSocket"
-            class="layout"
-            size="small"
-          >关闭房间</van-button>
+          <van-button lass="layout" type="warning" @click="dialog" class="layout" size="small">关闭房间</van-button>
           <p class="tip">连接后，面试官所出题目与回答内容将同步</p>
           <van-field
             label-width="50"
@@ -175,6 +169,18 @@ export default {
       if (this.socket) {
         this.socket.emit("question", this.question);
       }
+    },
+    dialog() {
+      this.$dialog
+        .confirm({
+          title: "确认关闭？",
+          message: "服务器关闭房间后，面试者将同步断开连接。"
+        })
+        .then(() => {
+          this.closeSocket();
+          this.$notify({ type: "warning", message: "房间已关闭" });
+        })
+        .catch(this.$dialog.close);
     },
     closeSocket() {
       if (this.socket) {

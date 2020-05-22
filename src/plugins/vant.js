@@ -3,7 +3,8 @@ import {
     Button,
     Switch,
     Field,
-    Notify
+    Notify,
+    Dialog
 } from 'vant'
 
 Notify.setDefaultOptions({
@@ -16,3 +17,4 @@ Vue.use(Button)
     .use(Switch)
     .use(Field)
     .use(Notify)
+    .use(Dialog)
