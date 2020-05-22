@@ -32,7 +32,7 @@
           <p class="layout">
             面试者连接地址：
             <br />
-            http://118.31.58.18/online/#/{{ room }}
+            http://59.110.40.182/editor/#/{{ room }}
           </p>
           <p class="layout">面试官：{{ examiner }} —— 面试者：{{ examinee }}</p>
           <van-button
@@ -115,40 +115,50 @@ export default {
     question: "尚未出题"
   }),
   methods: {
-    connect(path) {
-      const socket = io.connect("http://localhost:3366" + path);
+    connect(path, call) {
+      const socket = io.connect("59.110.40.182:3366" + path);
       this.socket = socket;
       socket.on("open", res => {
         if (res.status === 200) {
           for (let type in res.data) this[type] = res.data[type];
           this.$notify({ type: "primary", message: res.message });
         } else {
-          socket.close();
+          this.closeSocket();
           this.$notify({ type: "warning", message: res.message });
         }
       });
-      socket.on("code", code => {
-        this.codes[code.key] = code.code;
-      });
-      if (path.includes("token"))
-        socket.on("question", question => {
-          this.question = question;
-        });
+      call && call(socket);
     },
     open() {
       const password = md5(this.password);
       if (password === "63547a37f8971c5c68103de99c5a804c")
-        this.connect("?examiner=" + this.examiner);
+        this.connect("?examiner=" + this.examiner, socket => {
+          socket.on("examinee", code => {
+            this.codes[code.key] = code.code;
+          });
+        });
       else this.$notify({ type: "warning", message: "密码错误" });
     },
     linkAdmin() {
       if (this.token)
-        this.connect(`?examinee=${this.examinee}&token=${this.token}`);
+        this.connect(
+          `?examinee=${this.examinee}&token=${this.token}`,
+          socket => {
+            socket.on("examiner", res => {
+              this.codes[res.key].show = res.code.show;
+              this.codes[res.key].code = res.code.code;
+            });
+            socket.on("question", question => {
+              this.question = question;
+            });
+          }
+        );
       else this.$notify({ type: "warning", message: "连接错误" });
     },
     codeChange(key) {
       if (this.socket) {
-        this.socket.emit("code", {
+        const event = this.token === "onecho-admin" ? "examiner" : "examinee";
+        this.socket.emit(event, {
           code: this.codes[key],
           key
         });
@@ -162,6 +172,10 @@ export default {
     closeSocket() {
       if (this.socket) {
         this.socket.close();
+        this.socket = null;
+        this.room = "";
+        this.examiner = "";
+        this.examinee = "";
       }
     }
   },
