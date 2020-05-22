@@ -17,12 +17,7 @@
       <h3>Code Editor</h3>
       <div v-for="(item, key) in codes" :key="key" v-show="item.show">
         <p class="name">{{ key }}</p>
-        <codemirror
-          @input="codeChange(key)"
-          class="code"
-          v-model="item.code"
-          :options="{ mode: item.mode }"
-        />
+        <codemirror :id="key" class="code" v-model="item.code" :options="{ mode: item.mode }" />
       </div>
     </div>
     <div class="online">
@@ -116,7 +111,11 @@ export default {
   }),
   methods: {
     connect(path, call) {
-      const socket = io.connect("59.110.40.182:3366" + path);
+      const base =
+        process.env.NODE_ENV === "development"
+          ? "localhost:3366"
+          : "59.110.40.182:3366";
+      const socket = io.connect(base + path);
       this.socket = socket;
       socket.on("open", res => {
         if (res.status === 200) {
@@ -128,13 +127,20 @@ export default {
         }
       });
       call && call(socket);
+      document.addEventListener("keydown", event => {
+        if ((event.keyCode === 83 && event.ctrlKey) || event.keyCode === 13) {
+          this.codeChange(event.path[3].id);
+          event.preventDefault();
+        }
+      });
     },
     open() {
       const password = md5(this.password);
       if (password === "63547a37f8971c5c68103de99c5a804c")
         this.connect("?examiner=" + this.examiner, socket => {
-          socket.on("examinee", code => {
-            this.codes[code.key] = code.code;
+          socket.on("examinee", res => {
+            this.codes[res.key].show = res.code.show;
+            this.codes[res.key].code = res.code.code;
           });
         });
       else this.$notify({ type: "warning", message: "密码错误" });
@@ -156,6 +162,7 @@ export default {
       else this.$notify({ type: "warning", message: "连接错误" });
     },
     codeChange(key) {
+      console.log(key);
       if (this.socket) {
         const event = this.token === "onecho-admin" ? "examiner" : "examinee";
         this.socket.emit(event, {
