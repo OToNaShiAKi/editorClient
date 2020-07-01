@@ -108,7 +108,7 @@ export default {
       const base =
         process.env.NODE_ENV === "development"
           ? "localhost:3366"
-          : "59.110.40.182:3366";
+          : "hustmaths.top:3366";
       const socket = io.connect(base + path);
       this.socket = socket;
       socket.on("open", res => {
@@ -136,6 +136,14 @@ export default {
             this.codes[res.key].show = res.code.show;
             this.codes[res.key].code = res.code.code;
           });
+          socket.on("visibility", status => {
+            let message = "";
+            if (status === "hidden") message = "考生隐藏该标签页";
+            else if (status === "visible") message = "考生显示该标签页";
+            else if (status === true) message = "考生进入全屏";
+            else if (status === true) message = "考生退出全屏";
+            this.$notify({ type: "warning", message });
+          });
         });
       else this.$notify({ type: "warning", message: "密码错误" });
     },
@@ -145,18 +153,41 @@ export default {
           `?examinee=${this.examinee}&token=${this.token}`,
           socket => {
             socket.on("examiner", res => {
-              this.codes[res.key].show = res.code.show;
-              this.codes[res.key].code = res.code.code;
+              const [key, code] = res;
+              this.codes[key].show = code.show;
+              this.codes[key].code = code.code;
             });
             socket.on("question", question => {
               this.question = question;
+            });
+            document.body.requestFullscreen().then(() => {
+              this.$notify({
+                type: "warning",
+                message:
+                  "温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
+              });
+            });
+            document.body.addEventListener("fullscreenchange", () => {
+              const fullscreenState = document.fullscreen;
+              if (!fullscreenState) socket.emit("visibility", fullscreenState);
+              this.$dialog
+                .confirm({
+                  title: "笔试提醒",
+                  message: "请立即恢复全屏状态，否则将按作弊处理。"
+                })
+                .then(() => {
+                  this.closeSocket();
+                  this.$notify({ type: "warning", message: "房间已关闭" });
+                });
+            });
+            document.addEventListener("visibilitychange", () => {
+              socket.emit("visibility", document.visibilityState);
             });
           }
         );
       else this.$notify({ type: "warning", message: "连接错误" });
     },
     codeChange(key) {
-      console.log(key);
       if (this.socket) {
         const event = this.token === "onecho-admin" ? "examiner" : "examinee";
         this.socket.emit(event, {
@@ -174,13 +205,12 @@ export default {
       this.$dialog
         .confirm({
           title: "确认关闭？",
-          message: "服务器关闭房间后，面试者将同步断开连接。"
+          message: "服务器关闭房间后，考生将同步断开连接。"
         })
         .then(() => {
           this.closeSocket();
           this.$notify({ type: "warning", message: "房间已关闭" });
-        })
-        .catch(this.$dialog.close);
+        });
     },
     closeSocket() {
       if (this.socket) {
@@ -190,6 +220,7 @@ export default {
         this.examiner = "";
         this.examinee = "";
       }
+      if (document.fullscreen) document.body.exitFullscreen();
     }
   },
   created() {
@@ -236,7 +267,7 @@ export default {
   }
   .online {
     padding: 0 10px 20px;
-    width: 30%;
+    min-width: 30%;
     .tip {
       color: #999;
       font-size: 12px;
