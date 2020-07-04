@@ -27,7 +27,7 @@
           <p class="layout">
             面试者连接地址：
             <br />
-            http://59.110.40.182/editor/#/{{ room }}
+            http://hustmaths.map/editor/#/{{ room }}
           </p>
           <p class="layout">面试官：{{ examiner }} —— 面试者：{{ examinee }}</p>
           <van-button lass="layout" type="warning" @click="dialog" class="layout" size="small">关闭房间</van-button>
@@ -141,7 +141,7 @@ export default {
             if (status === "hidden") message = "考生隐藏该标签页";
             else if (status === "visible") message = "考生显示该标签页";
             else if (status === true) message = "考生进入全屏";
-            else if (status === true) message = "考生退出全屏";
+            else if (status === false) message = "考生退出全屏";
             this.$notify({ type: "warning", message });
           });
         });
@@ -169,16 +169,21 @@ export default {
             });
             document.body.addEventListener("fullscreenchange", () => {
               const fullscreenState = document.fullscreen;
-              if (!fullscreenState) socket.emit("visibility", fullscreenState);
-              this.$dialog
-                .confirm({
-                  title: "笔试提醒",
-                  message: "请立即恢复全屏状态，否则将按作弊处理。"
-                })
-                .then(() => {
-                  this.closeSocket();
-                  this.$notify({ type: "warning", message: "房间已关闭" });
-                });
+              socket.emit("visibility", fullscreenState);
+              if (!fullscreenState) {
+                this.$dialog
+                  .confirm({
+                    title: "笔试提醒",
+                    message: "请立即恢复全屏状态，否则将按作弊处理。"
+                  })
+                  .then(() => {
+                    document.body.requestFullscreen();
+                  })
+                  .catch(() => {
+                    this.closeSocket();
+                    this.$notify({ type: "warning", message: "房间已关闭" });
+                  });
+              }
             });
             document.addEventListener("visibilitychange", () => {
               socket.emit("visibility", document.visibilityState);
@@ -220,7 +225,9 @@ export default {
         this.examiner = "";
         this.examinee = "";
       }
-      if (document.fullscreen) document.body.exitFullscreen();
+      document.body.removeEventListener("fullscreenchange", () => {});
+      document.body.removeEventListener("keydown", () => {});
+      document.body.removeEventListener("visibilitychange", () => {});
     }
   },
   created() {
