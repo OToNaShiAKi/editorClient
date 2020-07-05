@@ -4,12 +4,12 @@
       <h3>Options</h3>
       <h5>Editor</h5>
       <section class="switch" v-for="(item, key) in codes" :key="key">
-        <van-switch @change="codeChange(key)" v-model="item.show" size="18px" />
+        <van-switch @change="switchChange(key, 'codes')" v-model="item.show" size="18px" />
         <span>{{ key }}</span>
       </section>
       <h5>frame</h5>
-      <section class="switch" v-for="item in frames" :key="item.name">
-        <van-switch v-model="item.show" size="18px" />
+      <section class="switch" v-for="(item, key) in frames" :key="item.name">
+        <van-switch @change="switchChange(key, 'frames')" v-model="item.show" size="18px" />
         <span>{{ item.name }}</span>
       </section>
     </div>
@@ -27,7 +27,7 @@
           <p class="layout">
             面试者连接地址：
             <br />
-            http://hustmaths.map/editor/#/{{ room }}
+            http://hustmaths.top/editor/#/{{ room }}
           </p>
           <p class="layout">面试官：{{ examiner }} —— 面试者：{{ examinee }}</p>
           <van-button lass="layout" type="warning" @click="dialog" class="layout" size="small">关闭房间</van-button>
@@ -111,6 +111,7 @@ export default {
           : "hustmaths.top:3366";
       const socket = io.connect(base + path);
       this.socket = socket;
+
       socket.on("open", res => {
         if (res.status === 200) {
           for (let type in res.data) this[type] = res.data[type];
@@ -121,21 +122,22 @@ export default {
         }
       });
       call && call(socket);
-      document.addEventListener("keydown", event => {
-        if ((event.keyCode === 83 && event.ctrlKey) || event.keyCode === 13) {
-          this.codeChange(event.path[3].id);
-          event.preventDefault();
-        }
-      });
+
+      document.addEventListener("keydown", this.codeChange);
     },
+
     open() {
       const password = md5(this.password);
       if (password === "63547a37f8971c5c68103de99c5a804c")
         this.connect("?examiner=" + this.examiner, socket => {
           socket.on("examinee", res => {
-            this.codes[res.key].show = res.code.show;
-            this.codes[res.key].code = res.code.code;
+            console.log(res);
+
+            this[res.part][res.key].show = res[res.part].show;
+            if (res[res.part].code)
+              this[res.part][res.key].code = res[res.part].code;
           });
+
           socket.on("visibility", status => {
             let message = "";
             if (status === "hidden") message = "考生隐藏该标签页";
@@ -147,65 +149,60 @@ export default {
         });
       else this.$notify({ type: "warning", message: "密码错误" });
     },
+
     linkAdmin() {
       if (this.token)
         this.connect(
           `?examinee=${this.examinee}&token=${this.token}`,
           socket => {
             socket.on("examiner", res => {
-              const [key, code] = res;
-              this.codes[key].show = code.show;
-              this.codes[key].code = code.code;
+              console.log(res);
+
+              this[res.part][res.key].show = res[res.part].show;
+              if (res[res.part].code)
+                this[res.part][res.key].code = res[res.part].code;
             });
             socket.on("question", question => {
               this.question = question;
             });
             document.body.requestFullscreen().then(() => {
               this.$notify({
-                type: "warning",
+                type: "primary",
                 message:
                   "温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
               });
             });
-            document.body.addEventListener("fullscreenchange", () => {
-              const fullscreenState = document.fullscreen;
-              socket.emit("visibility", fullscreenState);
-              if (!fullscreenState) {
-                this.$dialog
-                  .confirm({
-                    title: "笔试提醒",
-                    message: "请立即恢复全屏状态，否则将按作弊处理。"
-                  })
-                  .then(() => {
-                    document.body.requestFullscreen();
-                  })
-                  .catch(() => {
-                    this.closeSocket();
-                    this.$notify({ type: "warning", message: "房间已关闭" });
-                  });
-              }
-            });
-            document.addEventListener("visibilitychange", () => {
-              socket.emit("visibility", document.visibilityState);
-            });
+            document.body.addEventListener(
+              "fullscreenchange",
+              this.fullscreenChange
+            );
+            document.addEventListener(
+              "visibilitychange",
+              this.visibilityChange
+            );
           }
         );
       else this.$notify({ type: "warning", message: "连接错误" });
     },
-    codeChange(key) {
-      if (this.socket) {
-        const event = this.token === "onecho-admin" ? "examiner" : "examinee";
-        this.socket.emit(event, {
-          code: this.codes[key],
-          key
-        });
+
+    codeChange(event) {
+      if ((event.keyCode === 83 && event.ctrlKey) || event.keyCode === 13) {
+        const key = event.path[3].id;
+        const person = this.token === "onecho-admin" ? "examiner" : "examinee";
+        this.socket &&
+          this.socket.emit(person, {
+            codes: this.codes[key],
+            key,
+            part: "codes"
+          });
+
+        event.preventDefault();
       }
     },
     giveQuestion() {
-      if (this.socket) {
-        this.socket.emit("question", this.question);
-      }
+      this.socket && this.socket.emit("question", this.question);
     },
+
     dialog() {
       this.$dialog
         .confirm({
@@ -217,6 +214,7 @@ export default {
           this.$notify({ type: "warning", message: "房间已关闭" });
         });
     },
+
     closeSocket() {
       if (this.socket) {
         this.socket.close();
@@ -225,9 +223,51 @@ export default {
         this.examiner = "";
         this.examinee = "";
       }
-      document.body.removeEventListener("fullscreenchange", () => {});
-      document.body.removeEventListener("keydown", () => {});
-      document.body.removeEventListener("visibilitychange", () => {});
+
+      if (document.fullscreen) document.exitFullscreen();
+
+      document.body.removeEventListener(
+        "fullscreenchange",
+        this.fullscreenChange
+      );
+      document.body.removeEventListener("keydown", this.codeChange);
+      document.body.removeEventListener(
+        "visibilitychange",
+        this.visibilityChange
+      );
+    },
+
+    fullscreenChange() {
+      const fullscreenState = document.fullscreen;
+      this.socket && this.socket.emit("visibility", fullscreenState);
+
+      if (!fullscreenState)
+        this.$dialog
+          .confirm({
+            title: "笔试提醒",
+            message: "请立即恢复全屏状态，否则将按作弊处理。"
+          })
+          .then(() => {
+            document.body.requestFullscreen();
+          })
+          .catch(() => {
+            this.closeSocket();
+            this.$notify({ type: "warning", message: "房间已关闭" });
+          });
+    },
+
+    visibilityChange() {
+      this.socket && this.socket.emit("visibility", document.visibilityState);
+    },
+
+    switchChange(key, part) {
+      const person = this.token === "onecho-admin" ? "examiner" : "examinee";
+      this.socket &&
+        this.socket.emit(person, {
+          [part]: this[part][key],
+          key,
+          part
+        });
     }
   },
   created() {
