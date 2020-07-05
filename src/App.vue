@@ -131,8 +131,6 @@ export default {
       if (password === "63547a37f8971c5c68103de99c5a804c")
         this.connect("?examiner=" + this.examiner, socket => {
           socket.on("examinee", res => {
-            console.log(res);
-
             this[res.part][res.key].show = res[res.part].show;
             if (res[res.part].code)
               this[res.part][res.key].code = res[res.part].code;
@@ -156,8 +154,6 @@ export default {
           `?examinee=${this.examinee}&token=${this.token}`,
           socket => {
             socket.on("examiner", res => {
-              console.log(res);
-
               this[res.part][res.key].show = res[res.part].show;
               if (res[res.part].code)
                 this[res.part][res.key].code = res[res.part].code;
@@ -166,7 +162,7 @@ export default {
               this.question = question;
             });
             document.body.requestFullscreen().then(() => {
-              this.$notify({
+              this.$dialog.alert({
                 type: "primary",
                 message:
                   "温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
