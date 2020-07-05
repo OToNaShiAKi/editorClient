@@ -163,9 +163,8 @@ export default {
             });
             document.body.requestFullscreen().then(() => {
               this.$dialog.alert({
-                type: "primary",
-                message:
-                  "温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
+                title: "温馨提示",
+                message: "切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
               });
             });
             document.body.addEventListener(
