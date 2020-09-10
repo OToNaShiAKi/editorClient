@@ -7,7 +7,7 @@
         <van-switch @change="switchChange(key, 'codes')" v-model="item.show" size="18px" />
         <span>{{ key }}</span>
       </section>
-      <h5>frame</h5>
+      <h5>Frame</h5>
       <section class="switch" v-for="(item, key) in frames" :key="item.name">
         <van-switch @change="switchChange(key, 'frames')" v-model="item.show" size="18px" />
         <span>{{ item.name }}</span>
@@ -56,9 +56,13 @@
       </div>
       <div v-else>
         <p class="layout">{{ examiner ? `已连接面试官：${examiner}` : '未连接面试官'}}</p>
-        <p class="layout">题目：{{ question }}</p>
-        <p class="tip">连接后，面试官所出题目与回答内容将同步</p>
-        <p class="tip">答题过程中，请与面试官保持通话；如有任何问题，可咨询面试官</p>
+        <p class="layout">
+          题目：
+          <span v-html="question"></span>
+        </p>
+        <p class="tip">连接后，面试官所出题目与回答内容将同步。</p>
+        <p class="tip">答题过程中，请与面试官保持通话；如有任何问题，可咨询面试官。</p>
+        <p class="tip">温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息。</p>
         <van-field label-width="50" center v-model="examinee" label="姓名" v-if="!examiner">
           <template #button>
             <van-button size="small" @click="linkAdmin" :disabled="!examinee" type="info">连接</van-button>
@@ -80,28 +84,28 @@ export default {
       html: {
         mode: "text/html",
         code: "<!-- 直接写body内容 -->\n",
-        show: true
+        show: true,
       },
       css: { mode: "text/css", code: "", show: true },
       less: { mode: "text/css", code: "", show: false },
       javascript: { mode: "text/javascript", code: "", show: false },
       typescript: { mode: "text/typescript", code: "", show: false },
       vuecli: { mode: "text/x-vue", code: "", show: false },
-      php: { mode: "text/x-php", code: "<?php\n", show: false }
+      php: { mode: "text/x-php", code: "<?php\n", show: false },
     },
     frames: [
       { name: "bootstrap", show: false },
       { name: "jQuery", show: false },
       { name: "vue", show: false },
       { name: "thinkphp5", show: false },
-      { name: "laravel", show: false }
+      { name: "laravel", show: false },
     ],
     password: "",
     examiner: "",
     examinee: "",
     token: "",
     room: "",
-    question: "尚未出题"
+    question: "尚未出题",
   }),
   methods: {
     connect(path, call) {
@@ -112,7 +116,7 @@ export default {
       const socket = io.connect(base + path);
       this.socket = socket;
 
-      socket.on("open", res => {
+      socket.on("open", (res) => {
         if (res.status === 200) {
           for (let type in res.data) this[type] = res.data[type];
           this.$notify({ type: "primary", message: res.message });
@@ -129,14 +133,14 @@ export default {
     open() {
       const password = md5(this.password);
       if (password === "63547a37f8971c5c68103de99c5a804c")
-        this.connect("?examiner=" + this.examiner, socket => {
-          socket.on("examinee", res => {
+        this.connect("?examiner=" + this.examiner, (socket) => {
+          socket.on("examinee", (res) => {
             this[res.part][res.key].show = res[res.part].show;
             if (res[res.part].code)
               this[res.part][res.key].code = res[res.part].code;
           });
 
-          socket.on("visibility", status => {
+          socket.on("visibility", (status) => {
             let message = "";
             if (status === "hidden") message = "考生隐藏该标签页";
             else if (status === "visible") message = "考生显示该标签页";
@@ -152,22 +156,17 @@ export default {
       if (this.token)
         this.connect(
           `?examinee=${this.examinee}&token=${this.token}`,
-          socket => {
-            socket.on("examiner", res => {
+          (socket) => {
+            socket.on("examiner", (res) => {
               this[res.part][res.key].show = res[res.part].show;
               if (res[res.part].code)
                 this[res.part][res.key].code = res[res.part].code;
             });
-            socket.on("question", question => {
+            socket.on("question", (question) => {
               this.question = question;
             });
-            document.body.requestFullscreen().then(() => {
-              this.$dialog.alert({
-                title: "温馨提示",
-                message: "切换、关闭、隐藏标签页或退出全屏面试官都将收到消息"
-              });
-            });
-            document.body.addEventListener(
+            document.documentElement.requestFullscreen();
+            document.documentElement.addEventListener(
               "fullscreenchange",
               this.fullscreenChange
             );
@@ -188,7 +187,7 @@ export default {
           this.socket.emit(person, {
             codes: this.codes[key],
             key,
-            part: "codes"
+            part: "codes",
           });
 
         event.preventDefault();
@@ -202,7 +201,7 @@ export default {
       this.$dialog
         .confirm({
           title: "确认关闭？",
-          message: "服务器关闭房间后，考生将同步断开连接。"
+          message: "服务器关闭房间后，考生将同步断开连接。",
         })
         .then(() => {
           this.closeSocket();
@@ -221,7 +220,7 @@ export default {
 
       if (document.fullscreen) document.exitFullscreen();
 
-      document.body.removeEventListener(
+      document.documentElement.removeEventListener(
         "fullscreenchange",
         this.fullscreenChange
       );
@@ -240,10 +239,10 @@ export default {
         this.$dialog
           .confirm({
             title: "笔试提醒",
-            message: "请立即恢复全屏状态，否则将按作弊处理。"
+            message: "请立即恢复全屏状态，否则将按作弊处理。",
           })
           .then(() => {
-            document.body.requestFullscreen();
+            document.documentElement.requestFullscreen();
           })
           .catch(() => {
             this.closeSocket();
@@ -261,14 +260,14 @@ export default {
         this.socket.emit(person, {
           [part]: this[part][key],
           key,
-          part
+          part,
         });
-    }
+    },
   },
   created() {
     const token = location.hash.slice(2);
     this.token = token;
-  }
+  },
 };
 </script>
 
