@@ -4,12 +4,20 @@
       <h3>Options</h3>
       <h5>Editor</h5>
       <section class="switch" v-for="(item, key) in codes" :key="key">
-        <van-switch @change="switchChange(key, 'codes')" v-model="item.show" size="18px" />
+        <van-switch
+          @change="switchChange(key, 'codes')"
+          v-model="item.show"
+          size="18px"
+        />
         <span>{{ key }}</span>
       </section>
       <h5>Frame</h5>
       <section class="switch" v-for="(item, key) in frames" :key="item.name">
-        <van-switch @change="switchChange(key, 'frames')" v-model="item.show" size="18px" />
+        <van-switch
+          @change="switchChange(key, 'frames')"
+          v-model="item.show"
+          size="18px"
+        />
         <span>{{ item.name }}</span>
       </section>
     </div>
@@ -17,12 +25,17 @@
       <h3>Code Editor</h3>
       <div v-for="(item, key) in codes" :key="key" v-show="item.show">
         <p class="name">{{ key }}</p>
-        <codemirror :id="key" class="code" v-model="item.code" :options="{ mode: item.mode }" />
+        <codemirror
+          :id="key"
+          class="code"
+          v-model="item.code"
+          :options="{ mode: item.mode }"
+        />
       </div>
     </div>
     <div class="online">
       <h3>Online Connect</h3>
-      <div v-if="token === 'onecho-admin'">
+      <div v-if="token === 'admin'">
         <div v-if="room">
           <p class="layout">
             面试者连接地址：
@@ -30,7 +43,15 @@
             http://hustmaths.top/editor/#/{{ room }}
           </p>
           <p class="layout">面试官：{{ examiner }} —— 面试者：{{ examinee }}</p>
-          <van-button lass="layout" type="warning" @click="dialog" class="layout" size="small">关闭房间</van-button>
+          <van-button
+            lass="layout"
+            type="warning"
+            @click="dialog"
+            class="layout"
+            size="small"
+          >
+            关闭房间
+          </van-button>
           <p class="tip">连接后，面试官所出题目与回答内容将同步</p>
           <van-field
             label-width="50"
@@ -43,7 +64,12 @@
         </div>
         <div v-else>
           <van-field label-width="50" v-model="examiner" label="面试官" />
-          <van-field label-width="50" v-model="password" type="password" label="密码" />
+          <van-field
+            label-width="50"
+            v-model="password"
+            type="password"
+            label="密码"
+          />
           <van-button
             block
             :disabled="!password || !examiner"
@@ -51,21 +77,42 @@
             class="layout"
             type="info"
             size="small"
-          >建立房间</van-button>
+          >
+            建立房间
+          </van-button>
         </div>
       </div>
       <div v-else>
-        <p class="layout">{{ examiner ? `已连接面试官：${examiner}` : '未连接面试官'}}</p>
+        <p class="layout">
+          {{ examiner ? `已连接面试官：${examiner}` : "未连接面试官" }}
+        </p>
         <p class="layout">
           题目：
           <span v-html="question"></span>
         </p>
         <p class="tip">连接后，面试官所出题目与回答内容将同步。</p>
-        <p class="tip">答题过程中，请与面试官保持通话；如有任何问题，可咨询面试官。</p>
-        <p class="tip">温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息。</p>
-        <van-field label-width="50" center v-model="examinee" label="姓名" v-if="!examiner">
+        <p class="tip">
+          答题过程中，请与面试官保持通话；如有任何问题，可咨询面试官。
+        </p>
+        <p class="tip">
+          温馨提示：切换、关闭、隐藏标签页或退出全屏面试官都将收到消息。
+        </p>
+        <van-field
+          label-width="50"
+          center
+          v-model="examinee"
+          label="姓名"
+          v-if="!examiner"
+        >
           <template #button>
-            <van-button size="small" @click="linkAdmin" :disabled="!examinee" type="info">连接</van-button>
+            <van-button
+              size="small"
+              @click="linkAdmin"
+              :disabled="!examinee"
+              type="info"
+            >
+              连接
+            </van-button>
           </template>
         </van-field>
       </div>
@@ -84,14 +131,15 @@ export default {
       html: {
         mode: "text/html",
         code: "<!-- 直接写body内容 -->\n",
-        show: true,
+        show: false,
       },
-      css: { mode: "text/css", code: "", show: true },
-      less: { mode: "text/css", code: "", show: false },
+      css: { mode: "text/css", code: "", show: false },
       javascript: { mode: "text/javascript", code: "", show: false },
+      php: { mode: "text/x-php", code: "<?php", show: false },
+      java: { mode: "text/x-java", code: "", show: true },
+      less: { mode: "text/css", code: "", show: false },
       typescript: { mode: "text/typescript", code: "", show: false },
       vuecli: { mode: "text/x-vue", code: "", show: false },
-      php: { mode: "text/x-php", code: "<?php\n", show: false },
     },
     frames: [
       { name: "bootstrap", show: false },
@@ -182,7 +230,7 @@ export default {
     codeChange(event) {
       if ((event.keyCode === 83 && event.ctrlKey) || event.keyCode === 13) {
         const key = event.path[3].id;
-        const person = this.token === "onecho-admin" ? "examiner" : "examinee";
+        const person = this.token === "admin" ? "examiner" : "examinee";
         this.socket &&
           this.socket.emit(person, {
             codes: this.codes[key],
@@ -255,7 +303,7 @@ export default {
     },
 
     switchChange(key, part) {
-      const person = this.token === "onecho-admin" ? "examiner" : "examinee";
+      const person = this.token === "admin" ? "examiner" : "examinee";
       this.socket &&
         this.socket.emit(person, {
           [part]: this[part][key],
