@@ -1,13 +1,9 @@
 import Vue from "vue";
 import { Button, Switch, Field, Notify, Dialog } from "vant";
 
-Notify.setDefaultOptions({
-  duration: 1000,
-});
+Notify.setDefaultOptions({ duration: 1000 });
 
-Dialog.setDefaultOptions({
-  lockScroll: false,
-});
+Dialog.setDefaultOptions({ lockScroll: false });
 
 Vue.use(Button)
   .use(Switch)

@@ -180,7 +180,7 @@ export default {
 
     open() {
       const password = md5(this.password);
-      if (password === "63547a37f8971c5c68103de99c5a804c")
+      if (password === "8cc992b707adc99520a7ebe47d705a2c")
         this.connect("?examiner=" + this.examiner, (socket) => {
           socket.on("examinee", (res) => {
             this[res.part][res.key].show = res[res.part].show;
